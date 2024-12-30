@@ -1,11 +1,10 @@
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import dedent from "dedent";
 import shadcnDocs from "@/utils/shadcn-docs";
 import { z } from "zod";
 
-const openai = new OpenAI({
-  apiKey: process.env.LLM_API_KEY,
-  baseURL: process.env.LLM_BASE_URL,
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
 export async function POST(req: Request) {
@@ -30,41 +29,40 @@ export async function POST(req: Request) {
   const { model, messages, shadcn } = result.data;
   const systemPrompt = getSystemPrompt(shadcn);
 
-  const completionStream = await openai.chat.completions.create({
-    model,
-    messages: [
-      {
-        role: "system",
-        content: systemPrompt,
-      },
-      ...messages.map((message) => ({
-        ...message,
-        content:
-          message.role === "user"
-            ? message.content +
-              "\nPlease ONLY return code, NO backticks or language names."
-            : message.content,
-      })),
-    ],
-    temperature: 0.2,
-    stream: true, // Enable streaming
-  });
+  try {
+    const stream = await anthropic.messages.create({
+      model,
+      messages: [
+        {
+          role: "user",
+          content: systemPrompt + "\n\n" + messages[0].content + "\nPlease ONLY return code, NO backticks or language names.",
+        },
+      ],
+      stream: true,
+      max_tokens: 4000,
+    });
 
-  const stream = new ReadableStream({
-    async pull(controller) {
-      for await (const chunk of completionStream) {
-        const text = chunk.choices[0].delta.content; // Adjust based on the response format
-        if (text) {
-          controller.enqueue(text);
+    const textEncoder = new TextEncoder();
+    const readableStream = new ReadableStream({
+      async start(controller) {
+        for await (const chunk of stream) {
+          if (chunk.type === 'content_block_delta' && 'text' in chunk.delta) {
+            controller.enqueue(textEncoder.encode(chunk.delta.text));
+          }
         }
-      }
-      controller.close();
-    },
-  });
+        controller.close();
+      },
+    });
 
-  return new Response(stream, {
-    headers: { "Content-Type": "text/event-stream" },
-  });
+    return new Response(readableStream, {
+      headers: { "Content-Type": "text/event-stream" },
+    });
+  } catch (error: any) {
+    console.error("Error generating code:", error);
+    return new Response(error.message || "An error occurred while generating code", { 
+      status: error.status || 500 
+    });
+  }
 }
 
 function getSystemPrompt(shadcn: boolean) {

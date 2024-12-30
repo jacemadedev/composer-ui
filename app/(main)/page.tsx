@@ -22,10 +22,10 @@ export default function Home() {
   >("initial");
   let [prompt, setPrompt] = useState("");
   let models = [
-    { label: "claude-3-5-sonnet", value: "claude-3-5-sonnet" },
-    { label: "claude-3-5-sonnet-20240620", value: "claude-3-5-sonnet-20240620" },
-    { label: "claude-sonnet-3.5", value: "claude-sonnet-3.5" },
-    { label: "claude", value: "claude" },
+    { label: "Claude 3 Sonnet", value: "claude-3-sonnet-20240229" },
+    { label: "Claude 3 Opus", value: "claude-3-opus-20240229" },
+    { label: "Claude 2.1", value: "claude-2.1" },
+    { label: "Claude 2.0", value: "claude-2.0" },
   ];
   let [model, setModel] = useState(models[0].value);
   let [shadcn, setShadcn] = useState(false);

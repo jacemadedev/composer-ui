@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.33.1",
     "@clerk/nextjs": "^6.5.1",
     "@codesandbox/sandpack-react": "^2.18.2",
     "@codesandbox/sandpack-themes": "^2.0.21",
